@@ -7,6 +7,7 @@ from calendar import monthrange, calendar
 from django.shortcuts import render, redirect, get_object_or_404, render_to_response
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.core.exceptions import ValidationError
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate
 from app.forms import *
@@ -17,7 +18,7 @@ from django.contrib import messages
 from django.views import generic
 from django.utils.safestring import mark_safe
 from .utils import Calendar
-
+from django.contrib.auth.views import LoginView, LogoutView
 
 def home(request):
     """Renders the home page."""
@@ -83,26 +84,6 @@ def account(request):
         }
     )
 
-#def calendar(request):
-#    """ View for displaying calendar """
-#    assert isinstance(request, HttpRequest)
-#    if request.user.is_authenticated:
-#        return render(
-#            request,
-#            'app/calendar.html',
-#            {
-#               'title':'Calendar (editable)',
-#            }
-#        )
-#    else:
-#        return render(
-#            request,
-#            'app/calendar.html',
-#            {
-#                'title':'Calendar',
-#            }
-#        )
-
 def calendar(request):
     """ View for displaying calendar """
     assert isinstance(request, HttpRequest)
@@ -127,41 +108,56 @@ def calendar(request):
 def accountcreate(request):
     """ View for creating user accounts """
     if request.method == 'POST':
+        captchaForm= CaptchaForm(request.POST)
         form = SignUpForm(request.POST)
         if form.is_valid():
-            form.save()
-            username = form.cleaned_data.get('username')
-            raw_password = form.cleaned_data.get('password1')
-            user = authenticate(username=username, password=raw_password)
-            login(request, user)
-            return redirect('accountcreatesuccessful')
+            if captchaForm.is_valid():
+                human = True
+                form.save()
+                username = form.cleaned_data.get('username')
+                raw_password = form.cleaned_data.get('password1')
+                user = authenticate(username=username, password=raw_password)
+                login(request, user)
+                return redirect('accountcreatesuccessful')
     else:
         form = SignUpForm()
-    return render(request, 'app/accountcreate.html', {'form': form})
+        captchaForm = CaptchaForm()
+    return render(request, 'app/accountcreate.html', {'form': form, 'captchaForm': captchaForm})
 
-def stagecreate(request):     
-        if request.method == 'POST':
-            form = StageForm(request.POST)
-            if form.is_valid():
-                form.save()
-                return redirect('stagecreatesuccessful')
-        else:
-            form = StageForm()
-        return render(request, 'app/stagecreate.html', {'form': form})
-
-
-def stageedit(request):
-        if request.method == 'POST':
-            form = StageEditForm(request.POST)
-            if form.is_valid():
-                opt = form.cleaned_data['listOfStages']
-                a=Stage.objects.get(name = opt.name, listOfMatches = opt.listOfMatches)
-                form = StageEditForm(request.POST, instance = a)
-                form.save()
+def stagecreate(request):
+    if request.method == 'POST':
+        createStage = StageForm(request.POST)
+        editStage = StageEditForm(request.POST)
+        deleteStage = StageDeleteForm(request.POST)
+        if createStage.is_valid():
+            if editStage.is_valid():
+                opt = editStage.cleaned_data['listOfStages']
+                a = Stage.objects.get(name=opt.name, listOfMatches=opt.listOfMatches)
+                editStage = StageEditForm(request.POST, instance=a)
+                editStage.save()
                 return redirect('stageeditsuccessful')
-        else:
-            form = StageEditForm()
-        return render(request, 'app/stageedit.html', {'form': form})
+            createStage.save()
+            return redirect('stagecreatesuccessful')
+        elif deleteStage.is_valid():
+            opt = deleteStage.cleaned_data['listOfStages']
+            a=Stage.objects.get(name = opt.name, listOfMatches = opt.listOfMatches)
+            form = StageDeleteForm(request.POST, instance = a)
+            a.delete()
+            return redirect('stagedeletesuccessful')
+    else:
+        createStage = StageForm()
+        editStage = StageEditForm()
+        deleteStage = StageDeleteForm()
+    return render(
+        request,
+        'app/stagecreate.html',
+        {
+            'title': 'Stage Creator',
+            'createStage': createStage,
+            'editStage': editStage,
+            'deleteStage': deleteStage,
+        }
+    )
 
       
 def accountcreatesuccessful(request):
@@ -187,14 +183,14 @@ def teamcreate(request):
         if team_squad_form.is_valid():
             if team_squad_edit_form.is_valid():
                 opt = team_squad_edit_form.cleaned_data['listOfSquads']
-                a = TeamSquad.objects.get(name=opt.name, playerID=opt.playerID)
+                a = TeamSquad.objects.get(name=opt.name)
                 team_squad_edit_form = TeamSquadEditForm(request.POST, instance=a)
                 team_squad_edit_form.save()
                 return redirect('teamcreate')
             team_squad_form.save()
         elif team_squad_delete_form.is_valid():
             opt = team_squad_delete_form.cleaned_data['listOfSquads']
-            a = TeamSquad.objects.get(name=opt.name, playerID=opt.playerID)
+            a = TeamSquad.objects.get(name=opt.name)
             team_squad_delete_form = TeamSquadDeleteForm(request.POST, instance=a)
             a.delete()
             return redirect('teamcreate')
@@ -286,19 +282,7 @@ def stageeditsuccessful(request):
         request,
         'app/stageeditsuccessful.html'
     )
-def stagedelete(request):
-    if request.method == 'POST':
-            form = StageDeleteForm(request.POST)
-            if form.is_valid():
-                opt = form.cleaned_data['listOfStages']
-                a=Stage.objects.get(name = opt.name, listOfMatches = opt.listOfMatches)
-                form = StageDeleteForm(request.POST, instance = a)
-                a.delete()
-                #form.delete()
-                return redirect('stagedeletesuccessful')
-    else:
-        form = StageDeleteForm()
-    return render(request, 'app/stagedelete.html', {'form': form})
+
 def stagedeletesuccessful(request):
     assert isinstance(request,HttpRequest)
     return render(
@@ -364,3 +348,84 @@ def captcha(request):
     else:
         form = CaptchaForm()
     return render(request,'app/captcha.html', {'form' : form})
+
+class NewLogin(LoginView):
+    model = LoginView
+
+def matchcreate(request):
+    """View for creating matches"""
+    if request.method == 'POST':
+        match_form = MatchCreateForm(request.POST)
+        matchedit_form = MatchEditForm(request.POST)
+        matchdelete_form = MatchDeleteForm(request.POST)
+        shooters_form = ShootersForm(request.POST)
+        if match_form.is_valid():
+            match_form.save()
+            return redirect('matchcreate')
+        elif matchedit_form.is_valid():
+                opt = matchedit_form.cleaned_data['listOfMatches']
+                a=Match.objects.get(team1 = opt.team1, team2 = opt.team2, MatchID=opt.MatchID)
+                matchedit_form = MatchEditForm(request.POST, instance = a)
+                matchedit_form.save()
+                return redirect('matchcreate')
+        elif matchdelete_form.is_valid():
+                opt = matchdelete_form.cleaned_data['listOfMatches']
+                a=Match.objects.get(team1 = opt.team1, team2 = opt.team2, MatchID=opt.MatchID)
+                matchdelete_form = MatchDeleteForm(request.POST, instance = a)
+                a.delete()
+                return redirect('matchcreate')
+        elif shooters_form.is_valid():
+                opt = shooters_form.cleaned_data['listOfShooters']
+                a=Player.objects.get(name = opt.name,secondName = opt.secondName, role= opt.role, playerID=opt.playerID)
+                shooters_form = ShootersForm(request.POST, instance = a)
+                shooters_form.delete()
+                return redirect('matchcreate')
+    else:
+        match_form = MatchCreateForm()
+        matchedit_form = MatchEditForm()
+        matchdelete_form = MatchDeleteForm()
+        shooters_form = ShootersForm()
+    return render(
+        request,
+        'app/matchcreate.html',
+        {
+            'title': 'Match Manager',
+            'match_form': match_form,
+            'matchedit_form': matchedit_form,
+            'matchdelete_form': matchdelete_form,
+            'shooters_form': shooters_form,
+        }
+    )
+
+def playercreate(request):
+    if request.method == 'POST':
+        player_form = PlayerCreateForm(request.POST)
+        playeredit_form = PlayerEditForm(request.POST)
+        playerdelete_form = PlayerDeleteForm(request.POST)
+        if playeredit_form.is_valid():
+            opt = playeredit_form.cleaned_data['listOfPlayers']
+            a=Player.objects.get(name = opt.name,secondName = opt.secondName, role= opt.role, playerID=opt.playerID)
+            playeredit_form = PlayerEditForm(request.POST, instance = a)
+            playeredit_form.save()
+            return redirect('playercreate')
+        elif player_form.is_valid():
+            player_form.save()
+            return redirect('playercreate')
+        elif playerdelete_form.is_valid():
+            opt = playerdelete_form.cleaned_data['listOfPlayers']
+            a=Player.objects.get(name = opt.name,secondName = opt.secondName, role= opt.role, playerID=opt.playerID)
+            playerdelete_form = PlayerDeleteForm(request.POST, instance = a)
+            a.delete()
+            return redirect('playercreate')
+    else:
+        player_form = PlayerCreateForm()
+        playeredit_form = PlayerEditForm()
+        playerdelete_form = PlayerDeleteForm()
+
+    return render(
+        request, 'app/playercreate.html',
+        {'title': 'Player Manager',
+        'player_form': player_form,
+        'playeredit_form': playeredit_form,
+        'playerdelete_form': playerdelete_form,}
+        )

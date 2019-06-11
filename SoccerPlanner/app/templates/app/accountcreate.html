@@ -1,7 +1,7 @@
 ﻿{% extends "app/layout.html" %}
 
 {% block content %}
-
+{% load recaptcha2 %}
 {% if user.is_authenticated %}
 
 <h3>Your are logged!</h3>
@@ -17,17 +17,27 @@
         {{ field.label_tag }}<br>
         {{ field }}
         {% if field.help_text %}
-        <small style="color: grey">{{ field.help_text }}</small>
+        <small style="color: black">{{ field.help_text }}</small>
         {% endif %}
         {% for error in field.errors %}
         <p style="color: red">{{ error }}</p>
         {% endfor %}
     </p>
     {% endfor %}
-    <button type="submit">Sign up</button>
+    <h4>Prove that you are not robot.</h4>
+    <head>
+        {% recaptcha_init %}
+    </head>
+    <body>
+          <form action="?" method="POST">
+                  {% csrf_token %}
+                  {{ captchaForm }}
+                  <br>
+                  <input type="submit" value="Submit">
+          </form>
+    </body>
 </form>
 
-    
 {% endif %}
 
 {% endblock %}

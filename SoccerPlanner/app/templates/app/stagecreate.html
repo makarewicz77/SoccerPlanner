@@ -4,27 +4,76 @@
 
 {% if user.is_authenticated %}
 
-<h2>Create stage </h2>
-<form method="post">
-    {% csrf_token %}
-    {% for field in form %}
-    <p>
-        {{ field.label_tag }}<br>
-        {{ field }}
-        {% if field.help_text %}
-        <small style="color: grey">{{ field.help_text }}</small>
-        {% endif %}
-        {% for error in field.errors %}
-        <p style="color: red">{{ error }}</p>
-        {% endfor %}
-    </p>
-    {% endfor %}
-    <button type="submit">Create stage</button>
-</form>
-<div class="clearfix">
-        <br>
-        <a class="btn btn-info right" href="{% url 'manage' %}"> Return to manage </a>
+<center><h2>{{ title }}</h2></center>
+<br>
+
+
+<link rel="stylesheet" type="text/css" href="../../static/app/content/own.css">
+<div class="row">
+    <div class="col-sm-4">
+        <form method="post">
+            <h4>Create stage</h4>
+            <hr />
+            {% csrf_token %}
+            {% for field in createStage %}
+            <p>
+                {{ field.label_tag }}<br>
+                {{ field }}
+                {% if field.help_text %}
+                <small style="color: grey">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                <p style="color: red">{{ error }}</p>
+                {% endfor %}
+            </p>
+            {% endfor %}
+            <button type="submit" id = "button3">Create</button>
+        </form>
     </div>
+    <div class="col-sm-4">
+        <form method="post">
+            <h4>Edit stage</h4>
+            <hr />
+            {% csrf_token %}
+            {% for field in editStage %}
+            <p>
+                {{ field.label_tag }} <br>
+                {{ field }}
+                {% if field.help_text %}
+                <small style="color: grey">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                <p style="color: red">{{ error }}</p>
+                {% endfor %}
+            </p>
+            {% endfor %}
+            <button type="submit" name = "button3" id = "button3">Edit</button>
+        </form>
+    </div>
+    <div class="col-sm-4">
+        <form method="post">
+            <h4>Delete stage</h4>
+            <hr />
+            {% csrf_token %}
+            {% for field in deleteStage %}
+            <p>
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}
+                <small style="color: grey">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                <p style="color: red">{{ error }}</p>
+                {% endfor %}
+            </p>
+            {% endfor %}
+            <button type="submit" id = "button3">Delete</button>
+        </form>
+    </div>
+</div>
+</br>
+<center><div class="button1 b1">
+<a class="button1" href="{% url 'manage' %}">Return to manage </a></center>
 {% else %}
 
 <h3>Your are not logged!</h3>

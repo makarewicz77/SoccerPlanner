@@ -32,7 +32,7 @@ class ShooterRank(models.Model):
 
 class TeamSquad(models.Model):
     name = models.CharField(max_length=20)
-    playerID = models.ForeignKey(Player, on_delete=models.CASCADE)
+    playerID = models.ManyToManyField(Player, verbose_name="list of players")
     def __str__(self):
         return self.name
 
@@ -49,9 +49,9 @@ class Match(models.Model):
     MatchID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
     team1 = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, related_name='team1')
     team2 = models.ForeignKey(Team, on_delete=models.CASCADE, null=True, related_name='team2')
-    points = models.IntegerField(default=0)
-    points2 = models.IntegerField(default=0)
-    shootersPerMatch = models.ForeignKey(ShootersMatch, on_delete=models.CASCADE)
+    points = models.IntegerField(default=0, null=True, blank=True)
+    points2 = models.IntegerField(default=0, null=True, blank=True)
+    shootersPerMatch = models.ForeignKey(ShootersMatch, on_delete=models.CASCADE, null=True, blank=True)
     def __str__(self):
         return self.team1.name +" "+ self.team2.name
 
@@ -88,6 +88,7 @@ class Tournament(models.Model):
 
 
 class Event(models.Model):
+    name = models.TextField(u'Event Name', blank=True, null=True)
     day = models.DateField(u'Day of the event', help_text=u'Day of the event')
     start_time = models.DateTimeField(u'Starting time', help_text=u'Starting time')
     end_time = models.DateTimeField(u'Final time', help_text=u'Final time')
